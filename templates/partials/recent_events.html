@@ -1,0 +1,37 @@
+<div class="card-title">Live Event Feed</div>
+{% if recent %}
+  <table class="event-table">
+    <thead>
+      <tr>
+        <th>Event</th>
+        <th>Path</th>
+        <th>Source</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for ev in recent %}
+      <tr>
+        <td>
+          {% if ev.event == 'pageview' %}
+            <span class="badge badge-pv">pageview</span>
+          {% elif ev.event == 'session_end' %}
+            <span class="badge badge-end">session_end</span>
+          {% else %}
+            <span class="badge badge-ev">{{ ev.event }}</span>
+          {% endif %}
+        </td>
+        <td style="font-family:var(--font-mono);font-size:11px;color:var(--muted);">
+          {{ ev.path }}
+        </td>
+        <td style="font-size:11px;color:var(--muted);">{{ ev.source or '—' }}</td>
+        <td style="font-family:var(--font-mono);font-size:10px;color:var(--muted);white-space:nowrap;">
+          {{ ev.ts[:19].replace('T',' ') }}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <div style="color:var(--muted);font-size:12px;padding:8px 0;">No events yet.</div>
+{% endif %}

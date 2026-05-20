@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}— {{ app_id }}{% endblock %}
+
+{% block topbar %}
+<div class="topbar">
+  <h1>SiteScope <span>/ {{ app_id }}</span></h1>
+  <div class="time-filter">
+    {% for d, label in [(7,'7d'),(30,'30d'),(90,'90d')] %}
+      <a href="/app/{{ app_id }}?days={{ d }}"
+         class="time-btn {% if days == d %}active{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── stats cards (auto-refresh via HTMX) ── -->
+<div
+  id="stats-wrap"
+  hx-get="/app/{{ app_id }}/stats?days={{ days }}"
+  hx-trigger="every 30s"
+  hx-swap="innerHTML"
+>
+  {% include "partials/stats_cards.html" %}
+</div>
+
+<!-- ── pageviews timeline ── -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-title">Pageviews over time (last {{ days }} days)</div>
+  {% if chart_data %}
+    <div class="sparkline-wrap">
+      <svg id="timeline-svg" viewBox="0 0 800 110" preserveAspectRatio="none"
+           xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3dffd0" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#3dffd0" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- injected by JS below -->
+      </svg>
+    </div>
+    <script>
+    (function(){
+      const raw = {{ chart_data | tojson }};
+      const vals = raw.map(r=>r.views);
+      const labels = raw.map(r=>r.day);
+      const max = Math.max(...vals, 1);
+      const W = 800, H = 100, PAD = 5;
+      const xs = raw.map((_,i)=> PAD + i*(W-2*PAD)/(raw.length-1||1));
+      const ys = vals.map(v=> PAD + (1 - v/max) * (H - 2*PAD));
+
+      const pts = xs.map((x,i)=>`${x},${ys[i]}`).join(' ');
+      const area = `M${xs[0]},${H} ` + xs.map((x,i)=>`L${x},${ys[i]}`).join(' ') + ` L${xs[xs.length-1]},${H} Z`;
+
+      const svg = document.getElementById('timeline-svg');
+
+      // area fill
+      const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d', area);
+      p.setAttribute('fill','url(#grad)');
+      svg.appendChild(p);
+
+      // line
+      const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+      poly.setAttribute('points', pts);
+      poly.setAttribute('fill','none');
+      poly.setAttribute('stroke','#3dffd0');
+      poly.setAttribute('stroke-width','2');
+      poly.setAttribute('stroke-linejoin','round');
+      svg.appendChild(poly);
+
+      // dots + tooltips
+      xs.forEach((x,i)=>{
+        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx', x); c.setAttribute('cy', ys[i]);
+        c.setAttribute('r','3'); c.setAttribute('fill','#3dffd0');
+        const t = document.createElementNS('http://www.w3.org/2000/svg','title');
+        t.textContent = `${labels[i]}: ${vals[i]} views`;
+        c.appendChild(t);
+        svg.appendChild(c);
+      });
+    })();
+    </script>
+  {% else %}
+    <div style="color:var(--muted);text-align:center;padding:30px 0;font-size:13px;">No pageview data in this range.</div>
+  {% endif %}
+</div>
+
+<!-- ── two-col: top pages + top sources ── -->
+<div class="two-col">
+
+  <div class="card">
+    <div class="card-title">Top Pages</div>
+    {% if top_pages %}
+      {% set max_pv = top_pages[0].views %}
+      {% for row in top_pages %}
+        <div class="bar-row">
+          <div class="bar-label" title="{{ row.path }}">{{ row.path }}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:{{ (row.views / max_pv * 100)|round }}%"></div>
+          </div>
+          <div class="bar-count">{{ row.views }}</div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div style="color:var(--muted);font-size:12px;">No data.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-title">Traffic Sources</div>
+    {% if top_sources %}
+      {% set max_src = top_sources[0].visits %}
+      {% for row in top_sources %}
+        <div class="bar-row">
+          <div class="bar-label" title="{{ row.source }}">{{ row.source }}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:{{ (row.visits / max_src * 100)|round }};background:linear-gradient(90deg,var(--accent3),var(--accent2))%"></div>
+          </div>
+          <div class="bar-count">{{ row.visits }}</div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div style="color:var(--muted);font-size:12px;">No data.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ── languages + recent events ── -->
+<div class="two-col">
+
+  <div class="card">
+    <div class="card-title">Languages</div>
+    {% if languages %}
+      {% set max_lang = languages[0].cnt %}
+      {% for row in languages %}
+        <div class="bar-row">
+          <div class="bar-label">{{ row.lang }}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:{{ (row.cnt / max_lang * 100)|round }}%;background:linear-gradient(90deg,#7b61ff,#3dffd0)"></div>
+          </div>
+          <div class="bar-count">{{ row.cnt }}</div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div style="color:var(--muted);font-size:12px;">No data.</div>
+    {% endif %}
+  </div>
+
+  <!-- recent events (auto-refresh) -->
+  <div
+    class="card"
+    id="recent-wrap"
+    hx-get="/app/{{ app_id }}/recent"
+    hx-trigger="every 15s"
+    hx-swap="innerHTML"
+    style="overflow:auto;max-height:340px;"
+  >
+    {% include "partials/recent_events.html" %}
+  </div>
+
+</div>
+
+{% endblock %}
