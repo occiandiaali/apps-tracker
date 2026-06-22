@@ -2,8 +2,7 @@
 
 {% block title %}— {{ app_id }}{% endblock %}
 
-{% block topbar %}
-<div class="topbar">
+{% block topbar_inner %}
   <h1>SiteScope <span>/ {{ app_id }}</span></h1>
   <div class="time-filter">
     {% for d, label in [(7,'7d'),(30,'30d'),(90,'90d')] %}
@@ -11,7 +10,6 @@
          class="time-btn {% if days == d %}active{% endif %}">{{ label }}</a>
     {% endfor %}
   </div>
-</div>
 {% endblock %}
 
 {% block content %}

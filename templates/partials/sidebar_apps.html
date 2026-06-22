@@ -1,0 +1,21 @@
+{% for a in apps %}
+<div class="sidebar-app-row">
+  <a
+    href="/app/{{ a }}"
+    class="sidebar-link {% if app_id is defined and app_id == a %}active{% endif %}"
+  >
+    {{ a }}
+  </a>
+  <button
+    class="btn-delete"
+    title="Delete {{ a }}"
+    onclick="openConfirm(
+        'Delete &quot;{{ a }}&quot;?',
+        'This permanently removes all {{ a }} events from the database.',
+        function(){ doDelete('/app/{{ a }}/delete'); }
+      )"
+  >
+    ✕
+  </button>
+</div>
+{% endfor %}

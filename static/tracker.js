@@ -14,7 +14,7 @@
   "use strict";
 
   const cfg = window.SITESCAPE_CONFIG || {};
-  const ENDPOINT = cfg.endpoint || "https://localhost:5000/collect";
+  const ENDPOINT = cfg.endpoint || "http://localhost:5000/collect";
   const APP_ID = cfg.appId || "unknown-app";
 
   /* ── helpers ──────────────────────────────────────────────── */
@@ -23,7 +23,9 @@
     const KEY = "ss_sid";
     let sid = sessionStorage.getItem(KEY);
     if (!sid) {
-      sid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+      sid = crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
       sessionStorage.setItem(KEY, sid);
     }
     return sid;
@@ -33,7 +35,9 @@
     const KEY = "ss_vid";
     let vid = localStorage.getItem(KEY);
     if (!vid) {
-      vid = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+      vid = crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
       localStorage.setItem(KEY, vid);
     }
     return vid;
@@ -44,10 +48,24 @@
     try {
       const u = new URL(ref);
       const host = u.hostname.replace(/^www\./, "");
-      const knownSearch = { "google.com": "Google", "bing.com": "Bing", "duckduckgo.com": "DuckDuckGo", "yahoo.com": "Yahoo" };
-      const knownSocial = { "facebook.com": "Facebook", "twitter.com": "Twitter", "x.com": "X", "instagram.com": "Instagram", "linkedin.com": "LinkedIn", "reddit.com": "Reddit" };
-      if (knownSearch[host]) return { source: "search:" + knownSearch[host], referrer: ref };
-      if (knownSocial[host]) return { source: "social:" + knownSocial[host], referrer: ref };
+      const knownSearch = {
+        "google.com": "Google",
+        "bing.com": "Bing",
+        "duckduckgo.com": "DuckDuckGo",
+        "yahoo.com": "Yahoo",
+      };
+      const knownSocial = {
+        "facebook.com": "Facebook",
+        "twitter.com": "Twitter",
+        "x.com": "X",
+        "instagram.com": "Instagram",
+        "linkedin.com": "LinkedIn",
+        "reddit.com": "Reddit",
+      };
+      if (knownSearch[host])
+        return { source: "search:" + knownSearch[host], referrer: ref };
+      if (knownSocial[host])
+        return { source: "social:" + knownSocial[host], referrer: ref };
       return { source: "referral:" + host, referrer: ref };
     } catch (_) {
       return { source: "unknown", referrer: ref };
@@ -57,7 +75,13 @@
   function utmParams() {
     const p = new URLSearchParams(location.search);
     const out = {};
-    for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"]) {
+    for (const k of [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+    ]) {
       if (p.has(k)) out[k] = p.get(k);
     }
     return out;
@@ -86,11 +110,18 @@
     };
 
     // prefer sendBeacon for reliability on unload, fall back to fetch
-    const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(payload)], {
+      type: "application/json",
+    });
     if (navigator.sendBeacon) {
       navigator.sendBeacon(ENDPOINT, blob);
     } else {
-      fetch(ENDPOINT, { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+      fetch(ENDPOINT, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+      }).catch(() => {});
     }
   }
 
